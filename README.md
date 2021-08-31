@@ -1,0 +1,2 @@
+# Kaveh
+A simple blog.
