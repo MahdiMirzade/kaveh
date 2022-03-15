@@ -1,13 +1,67 @@
 #!/usr/bin/env bash
-
-# Source config file
-export KVH_CONFIG_FILE="./Kaveh.cfg"
-[[ -f "$KVH_CONFIG_FILE" ]] && source "$KVH_CONFIG_FILE"
+#
+# Kaveh is a simple website generator.
+# https://github.com/MahdyMirzade/Kaveh
+#
+# Kaveh's version/copyright
+KVH_VERSION="1.0.0"
+KVH_COPYRIGHT="Copyright (C) 2021 Mahdy Mirzade"
 
 # Default configuration
-export KVH_SRC="${KVH_INPUT_DIR:-./src}"
-export KVH_DST="${KVH_OUTPUT_DIR:-./out}"
-export KVH_DATETIME="${KVH_DATETIME:-%d %B %Y %H:%M:%S}"
+KVH_SRC="${PWD}/src"
+KVH_DST="${PWD}/out"
+KVH_TPL="${PWD}/tpl"
+KVH_DATETIME="%d %B %Y %H:%M:%S"
+
+# Help text
+usage(){
+    cat <<EOF
+$0 [-i SOURCE_DIR] [-o OUTPUT_DIR] [-t TEMPLATE_DIR] [-d DATETIME_FORMAT]
+EOF
+    exit
+}
+
+version(){
+    cat <<EOF
+
+ _  __               _      Kaveh v$KVH_VERSION
+| |/ /__ ___   _____| |__   $KVH_COPYRIGHT
+| ' // _\` \ \ / / _ \ '_ \ 
+| . \ (_| |\ V /  __/ | | | This program may be freely redistributed under
+|_|\_\__,_| \_/ \___|_| |_| the terms of the GNU General Public License.
+
+EOF
+    exit
+}
+
+# Custom options
+while getopts :hvi:o:t:d: flag; do
+    case "${flag}" in
+        i) KVH_SRC=${OPTARG};;
+        o) KVH_DST=${OPTARG};;
+        t) KVH_TPL=${OPTARG};;
+        d) KVH_DATETIME=${OPTARG};;
+        v) version;;
+        h|*) usage;;
+    esac
+done
+
+# Check KVH_*
+check_config(){
+    KILL_PROGRAM="FALSE"
+    if [[ ! -e "$KVH_SRC" ]]; then
+        echo "ERROR: '$KVH_SRC' doesn't exist."
+        KILL_PROGRAM="TRUE"
+    fi
+    if [[ ! -e "$KVH_TPL" ]]; then
+        echo "ERROR: '$KVH_TPL' doesn't exist."
+        KILL_PROGRAM="TRUE"
+    fi
+    if [[ "$KILL_PROGRAM" == "TRUE" ]]; then
+        echo "Terminating program..."
+        exit
+    fi
+}
 
 # Find all pre-existed dirs
 find_dirs(){
@@ -31,7 +85,7 @@ find_mds(){
     KVH_MARKDOWNS=()
     while IFS= read -d $'\n' -r file ; do
         KVH_MARKDOWNS=("${KVH_MARKDOWNS[@]}" "$file")
-    done < <(find "$KVH_SRC" -type f -perm /u=r -name "*.md")
+    done < <(find "$KVH_SRC" -type f -perm /u=r -iname "*.md")
 }
 
 # Get Markdown comments from file
@@ -54,9 +108,9 @@ make_mds(){
         POST_COMMENTS=$(parse_md_comments "$KVH_FILE")
         TITLE=$(parse_md_variables "Title" "$POST_COMMENTS")
         DESC=$(parse_md_variables "Description" "$POST_COMMENTS")
-        H=$(cat "./tpl/header.html")
+        H=$(cat "${KVH_TPL}/header.html")
         C=$(markdown "$KVH_FILE")
-        F=$(cat "./tpl/footer.html")
+        F=$(cat "${KVH_TPL}/footer.html")
         D=$(date -r "$KVH_FILE" "+$KVH_DATETIME")
         KVH_CONTENT="$H
 $C
@@ -69,5 +123,15 @@ $F"
 }
 
 # Main program
-make_dirs
-make_mds
+main(){
+    check_config
+    make_dirs
+    make_mds
+    # Copy the rest of files/assets
+    while IFS= read -d $'\n' -r file ; do
+        dest="$KVH_DST/${file#$KVH_SRC/}"
+        if [[ -e "$dest" ]]; then echo "'$dest' Already exists."; continue; else cp "$file" "$dest"; fi
+    done < <(find "$KVH_SRC" -type f -perm /u=r -print)
+}
+
+main
