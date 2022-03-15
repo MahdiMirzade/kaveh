@@ -9,7 +9,7 @@ pacman -S discount
 
 ## Installation
 ```bash
-git clone https://github.com/MahdyMirzade/gip.git
+git clone https://github.com/MahdyMirzade/Kaveh.git
 cp Kaveh/Kaveh /usr/bin
 Kaveh -v
 ```
