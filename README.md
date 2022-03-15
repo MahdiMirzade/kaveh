@@ -30,7 +30,7 @@ Kaveh -i /var/doc/mahdym.ir -o /var/www/mahdym.ir
 > Then just run the `build.sh` file, whenever you've updated the `/var/doc/mahdym.ir`'s files.
 
 ### Example of output
-I've made an example so you can understand what's going on, take a look at the `./src/index.md`, then open the `./out/index.html` in your browser.
+I've made an example so you can understand what's going on, take a look at the [./src/index.md](https://mahdymirzade.github.io/Kaveh/src/index.md), then open the [./out/index.html](https://mahdymirzade.github.io/Kaveh/out/index.html).
 
 ## How to edit pre-existing files?
 1. Clone this repository and enter it.
