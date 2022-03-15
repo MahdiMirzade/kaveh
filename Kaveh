@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+# Source config file
+export KVH_CONFIG_FILE="./Kaveh.cfg"
+[[ -f "$KVH_CONFIG_FILE" ]] && source "$KVH_CONFIG_FILE"
+
+# Default configuration
+export KVH_SRC="${KVH_INPUT_DIR:-./src}"
+export KVH_DST="${KVH_OUTPUT_DIR:-./out}"
+export KVH_DATETIME="${KVH_DATETIME:-%d %B %Y %H:%M:%S}"
+
+# Find all pre-existed dirs
+find_dirs(){
+    KVH_DIRS=()
+    while IFS= read -d $'\n' -r dir ; do
+        KVH_DIRS=("${KVH_DIRS[@]}" "$dir")
+    done < <(find "$KVH_SRC" -type d -perm /u=r)
+}
+
+# Prepare all pre-existed dirs to $KVH_DST
+make_dirs(){
+    find_dirs
+    for KVH_DIR in "${KVH_DIRS[@]}"; do
+        export KVH_DIR_NAME="${KVH_DIR/$KVH_SRC/}"
+        mkdir -p "$KVH_DST/$KVH_DIR_NAME"
+    done
+}
+
+# Find all markdown goods
+find_mds(){
+    KVH_MARKDOWNS=()
+    while IFS= read -d $'\n' -r file ; do
+        KVH_MARKDOWNS=("${KVH_MARKDOWNS[@]}" "$file")
+    done < <(find "$KVH_SRC" -type f -perm /u=r -name "*.md")
+}
+
+# Get Markdown comments from file
+parse_md_comments(){
+    sed -n "/<\!---.*KVH.*/,/--->/p" "$@"
+}
+
+# Parse variables from string
+parse_md_variables(){
+    echo "$2" | grep "$1" | sed 's/^.*: //'
+}
+
+# Prepare all html files to $KVH_DST
+make_mds(){
+    find_mds
+    for KVH_FILE in "${KVH_MARKDOWNS[@]}"; do
+        export KVH_FILE_NAME="${KVH_FILE/$KVH_SRC/}"
+        export KVH_FILE_NAME="${KVH_FILE_NAME/%.md/}"
+        #markdown "$KVH_FILE" > "$KVH_DST/$KVH_FILE_NAME.html"
+        POST_COMMENTS=$(parse_md_comments "$KVH_FILE")
+        TITLE=$(parse_md_variables "Title" "$POST_COMMENTS")
+        DESC=$(parse_md_variables "Description" "$POST_COMMENTS")
+        H=$(cat "./tpl/header.html")
+        C=$(markdown "$KVH_FILE")
+        F=$(cat "./tpl/footer.html")
+        D=$(date -r "$KVH_FILE" "+$KVH_DATETIME")
+        KVH_CONTENT="$H
+$C
+$F"
+        KVH_CONTENT=${KVH_CONTENT//\$PAGE_TITLE/$TITLE}
+        KVH_CONTENT=${KVH_CONTENT//\$PAGE_DESC/$DESC}
+        KVH_CONTENT=${KVH_CONTENT//$POST_COMMENTS/}
+        echo "$KVH_CONTENT" > "$KVH_DST/$KVH_FILE_NAME.html"
+    done
+}
+
+# Main program
+make_dirs
+make_mds
