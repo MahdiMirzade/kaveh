@@ -13,4 +13,3 @@ I write my blog posts like `blog/*.md`, using Markdown, It's easier for me to re
 
 ## Donate
 You can use [this page](https://git.io/JB2BO) to find more about supporting this project.
-

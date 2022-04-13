@@ -1,0 +1,126 @@
+#!/bin/sh
+#
+# This is a simple statis website generator script.
+#
+KVH_COPYRIGHT="Copyright (C) 2021-2022 Mahdi Mirzade"
+KVH_VERSION="0.1"
+KVH_SRC="${PWD}/src"
+KVH_DST="${PWD}/out"
+
+# Default page values
+KVH_PAGE_NAME="Kaveh"
+KVH_PAGE_ICON="/logo.png"
+KVH_PAGE_DESC="Kaveh is a simple website generator, it aims to generate static html files from markdown files, no databases and bloat-web, just texts."
+
+while getopts :vi:o: flag; do
+    case "${flag}" in
+        i) KVH_SRC=${OPTARG};;
+        o) KVH_DST=${OPTARG};;
+        v)
+            printf "\n"
+            printf " _  __               _      \tKaveh v%s\n" "${KVH_VERSION}"
+            printf "| |/ /__ ___   _____| |__   \t%s\n" "${KVH_COPYRIGHT}"
+            printf "| ' // _\` \ \ / / _ \ '_ \ \t\n"
+            printf "| . \ (_| |\ V /  __/ | | | \tThis program may be freely redistributed under\n"
+            printf "|_|\_\__,_| \_/ \___|_| |_| \tthe terms of the MIT License.\n"
+            printf "\n"
+            exit
+        ;;
+        *)
+            printf "%s [-v] [-i SOURCE_DIR] [-o OUTPUT_DIR]\n" "$0"
+            exit
+        ;;
+    esac
+done
+
+getvalue() { sed -e "/.*<\!---.*KVH.*/,/--->/!d" "$1" | sed -n "/^$2/I p" | sed 's/^.*: //'; }
+md2html() { markdown "$1" | sed -e '/.*<\!---.*KVH.*/,/--->/d'; }
+
+# Generate html files in source from markdowns.
+find "${KVH_SRC}" -name "*.md" | while read FILE; do
+    FILE_NAME="${FILE##$KVH_SRC/}"
+    FILE_DIR="$(dirname "${FILE_NAME}")"
+
+    [ -d "${KVH_DST}/${FILE_DIR}" ] \
+        || mkdir -p "${KVH_DST}/${FILE_DIR}"
+
+    PAGE_ICON="$(getvalue "${FILE}" "icon")"
+    PAGE_NAME="$(getvalue "${FILE}" "title")"
+    PAGE_DESC="$(getvalue "${FILE}" "description")"
+
+    [ "${PAGE_ICON}" ] || PAGE_ICON="${KVH_PAGE_ICON}"
+    [ "${PAGE_NAME}" ] || PAGE_ICON="${KVH_PAGE_NAME}"
+    [ "${PAGE_DESC}" ] || PAGE_ICON="${KVH_PAGE_DESC}"
+
+    printf "%s\n" \
+        "$(sed '0,/^__HTML TEMPLATE__$/d' "$0" | sed -e '/PAGE_DATA/,//d')" \
+        "$(md2html "${FILE}")" \
+        "$(sed '0,/^__HTML TEMPLATE__$/d' "$0" | sed -e '0,/%PAGE_DATA%/d')" \
+    | sed   -e '/^\s*$/d' \
+            -e "s/%PAGE_TITLE%/${PAGE_NAME}/g" \
+            -e "s/%PAGE_DESC%/${PAGE_DESC}/g" \
+            -e "s/%PAGE_ICON%/${PAGE_ICON}/g" \
+            -e "s/%KVH_VERSION%/${KVH_VERSION}/g" \
+    > "${KVH_DST}/${FILE_NAME%.md}.html"
+
+    unset "${PAGE_ICON}" "${PAGE_NAME}" "${PAGE_DESC}" "${FILE_NAME}" "${FILE_DIR}"
+done
+
+# Copy the rest files/assets into destination.
+find "${KVH_SRC}" -type f | while read FILE; do
+    [ "${FILE#*.}" = "md" ] || continue;    # Skip *.md files.
+    FILE_NAME="${FILE##$KVH_SRC/}"
+    FILE_DIR="$(dirname "$FILE")"
+    [ -d "${FILE_DIR}" ] || mkdir -p "${KVH_DST}/${FILE_DIR}"
+    [ -e "${FILE}" ] || cp "${FILE}" "${KVH_DST}/${FILE_NAME}"
+    unset "${FILE_NAME}" "${FILE_DIR}"
+done
+
+exit $?
+
+__HTML TEMPLATE__
+<!DOCTYPE html>
+<html lang=en>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="Kaveh v%KVH_VERSION%" />
+<meta name="description" content="%PAGE_DESC%">
+<link rel="icon" href="%PAGE_ICON%">
+<title>%PAGE_TITLE%</title>
+<style>
+    body{
+        margin:1em auto;
+        max-width:40em;
+        padding:0 .62em;
+        font:1.2em/1.62 sans-serif
+    }
+    blockquote, pre, code {
+        background-color: #f0f0f0;
+        border-color: #222;
+    }
+    h1,h2,h3 {
+        line-height:1.2
+    }
+    @media print{
+        body{
+            max-width:none
+        }
+    }
+    @media (prefers-color-scheme: dark){
+        body {color:#fff;background:#000}
+        a:link {color:#cdf}
+        a:hover, a:visited:hover {color:#def}
+        a:visited {color:#dcf}
+    }
+</style>
+</head>
+<body>
+<div>
+%PAGE_DATA%
+</div>
+<footer style="text-align: right;">
+<p><small>Powered by <a href="https://github.com/MahdiMirzade/Kaveh">Kaveh</a></small></p>
+</footer>
+</body>
+</html>
