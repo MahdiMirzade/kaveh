@@ -9,7 +9,7 @@ KVH_DST="${PWD}/out"
 
 # Default page values
 KVH_PAGE_NAME="Kaveh"
-KVH_PAGE_ICON="/logo.png"
+KVH_PAGE_ICON="\/logo.png"
 KVH_PAGE_DESC="Kaveh is a simple website generator, it aims to generate static html files from markdown files, no databases and bloat-web, just texts."
 
 while getopts :vi:o: flag; do
@@ -49,8 +49,8 @@ find "${KVH_SRC}" -name "*.md" | while read FILE; do
     PAGE_DESC="$(getvalue "${FILE}" "description")"
 
     [ "${PAGE_ICON}" ] || PAGE_ICON="${KVH_PAGE_ICON}"
-    [ "${PAGE_NAME}" ] || PAGE_ICON="${KVH_PAGE_NAME}"
-    [ "${PAGE_DESC}" ] || PAGE_ICON="${KVH_PAGE_DESC}"
+    [ "${PAGE_NAME}" ] || PAGE_NAME="${KVH_PAGE_NAME}"
+    [ "${PAGE_DESC}" ] || PAGE_DESC="${KVH_PAGE_DESC}"
 
     printf "%s\n" \
         "$(sed '0,/^__HTML TEMPLATE__$/d' "$0" | sed -e '/PAGE_DATA/,//d')" \
@@ -62,8 +62,6 @@ find "${KVH_SRC}" -name "*.md" | while read FILE; do
             -e "s/%PAGE_ICON%/${PAGE_ICON}/g" \
             -e "s/%KVH_VERSION%/${KVH_VERSION}/g" \
     > "${KVH_DST}/${FILE_NAME%.md}.html"
-
-    unset "${PAGE_ICON}" "${PAGE_NAME}" "${PAGE_DESC}" "${FILE_NAME}" "${FILE_DIR}"
 done
 
 # Copy the rest files/assets into destination.
@@ -73,7 +71,6 @@ find "${KVH_SRC}" -type f | while read FILE; do
     FILE_DIR="$(dirname "$FILE")"
     [ -d "${FILE_DIR}" ] || mkdir -p "${KVH_DST}/${FILE_DIR}"
     [ -e "${FILE}" ] || cp "${FILE}" "${KVH_DST}/${FILE_NAME}"
-    unset "${FILE_NAME}" "${FILE_DIR}"
 done
 
 exit $?
@@ -112,6 +109,9 @@ __HTML TEMPLATE__
         a:link {color:#cdf}
         a:hover, a:visited:hover {color:#def}
         a:visited {color:#dcf}
+        blockquote, pre, code {
+                background-color: #2f2f2f;
+        }
     }
 </style>
 </head>
