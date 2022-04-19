@@ -62,6 +62,10 @@ find "${KVH_SRC}" -name "*.md" | while read FILE; do
             -e "s/%PAGE_ICON%/${PAGE_ICON}/g" \
             -e "s/%KVH_VERSION%/${KVH_VERSION}/g" \
     > "${KVH_DST}/${FILE_NAME%.md}.html"
+
+    # Minify html files: (just removing characters within tags, not effecting JS,CSS)
+    sed -i ':a;N;$!ba;s/>\s*</></g' "${KVH_DST}/${FILE_NAME%.md}.html"
+
 done
 
 # Copy the rest files/assets into destination.
